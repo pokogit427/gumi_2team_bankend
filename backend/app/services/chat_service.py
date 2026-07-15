@@ -103,6 +103,65 @@ def _generate_openai_answer(message: str, references: list[dict]) -> str:
         raise
 
 
+def _search_local_json_files(query: str, max_hits: int = 5) -> list[dict]:
+    """`backend/data/*.json` 파일을 검색해 쿼리와 매칭되는 항목을 최대 `max_hits`개 반환합니다.
+
+    반환되는 항목 형태: {"id": <str>, "title": <str>, "snippet": <str>, "file": <str>, "result_type": "local_data"}
+    이 함수는 안전성 때문에 파일 전체를 프롬프트로 보내지 않고, 매칭된 필드의 간단한 스니펫만 제공합니다.
+    """
+    try:
+        from pathlib import Path
+        import json
+    except Exception:
+        return []
+
+    data_dir = Path(__file__).resolve().parents[2] / "data"
+    if not data_dir.exists():
+        return []
+
+    matches = []
+    q = query.casefold()
+    for p in data_dir.glob("*.json"):
+        if len(matches) >= max_hits:
+            break
+        try:
+            raw = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        items = raw if isinstance(raw, list) else [raw]
+        for idx, item in enumerate(items):
+            if len(matches) >= max_hits:
+                break
+            # find candidate string fields
+            candidate = None
+            for key in ("title", "name", "description", "addr", "category"): 
+                val = item.get(key) if isinstance(item, dict) else None
+                if isinstance(val, str) and q in val.casefold():
+                    candidate = (key, val)
+                    break
+            if not candidate:
+                # fallback: search any string fields (cheap scan)
+                if isinstance(item, dict):
+                    for k, v in item.items():
+                        if isinstance(v, str) and q in v.casefold():
+                            candidate = (k, v)
+                            break
+            if candidate:
+                key, val = candidate
+                title = item.get("title") or item.get("name") or p.stem
+                snippet = val if len(val) <= 200 else val[:197] + "..."
+                matches.append({
+                    "id": f"{p.name}:{idx}",
+                    "title": title,
+                    "snippet": snippet,
+                    "file": p.name,
+                    "result_type": "local_data",
+                })
+
+    return matches
+
+
 def generate_chat_response(message: str, db=None, max_refs: int = 5) -> dict:
     """주어진 메시지에 대해 규칙 기반 응답을 생성합니다.
 
