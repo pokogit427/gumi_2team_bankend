@@ -40,6 +40,11 @@ def _server_error_response() -> JSONResponse:
     "",
     response_model=PostListResponse,
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse}},
+    description=(
+        "게시글 목록을 페이지 단위로 조회합니다."
+        " `page`와 `size` 쿼리 파라미터로 페이징을 조절할 수 있으며,"
+        " 각 항목은 `PostResponse` 스키마를 따릅니다."
+    ),
 )
 def list_posts_endpoint(
     page: int = Query(default=1, ge=1),
@@ -60,6 +65,10 @@ def list_posts_endpoint(
         status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
     },
+    description=(
+        "단일 게시글을 조회하고 조회수를 1 증가시킵니다."
+        " 존재하지 않는 게시글 id로 요청하면 `not_found` 오류를 반환합니다."
+    ),
 )
 def get_post_endpoint(post_id: int, db: Session = Depends(get_db)):
     try:
@@ -82,6 +91,10 @@ def get_post_endpoint(post_id: int, db: Session = Depends(get_db)):
         status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
     },
+    description=(
+        "게시글을 수정합니다. 요청 바디의 `password`가 원래 게시글의 비밀번호와 일치해야 합니다."
+        " 실패 시 적절한 에러 코드와 메시지를 반환합니다."
+    ),
 )
 def update_post_endpoint(
     post_id: int,
@@ -113,6 +126,10 @@ def update_post_endpoint(
         status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
     },
+    description=(
+        "게시글을 삭제합니다. 요청 바디에 `password`를 포함해야 하며,"
+        " 비밀번호 검증에 실패하면 `forbidden` 에러를 반환합니다."
+    ),
 )
 def delete_post_endpoint(
     post_id: int,
@@ -143,6 +160,10 @@ def delete_post_endpoint(
     response_model=PostResponse,
     status_code=status.HTTP_201_CREATED,
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse}},
+    description=(
+        "새 게시글을 작성합니다. 응답으로 생성된 게시글의 전체 정보를 반환합니다."
+        " 비밀번호는 향후 수정/삭제 확인용으로 평문으로 저장됩니다(프로덕션에서는 해시 권장)."
+    ),
 )
 def create_post_endpoint(post_data: PostCreate, db: Session = Depends(get_db)):
     try:

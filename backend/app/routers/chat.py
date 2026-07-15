@@ -23,8 +23,11 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     """POST /api/chat
 
-    바디의 `message`를 규칙 기반으로 분류하고, 관련 지역정보 또는 게시글을
-    조회해 `answer`와 `references`를 반환합니다.
+    사용자가 입력한 `message`를 간단한 키워드 규칙으로 분류하여 관련 지역정보
+    또는 게시글을 찾아 요약적 답변(`answer`)과 최대 N개의 참조(`references`)를 반환합니다.
+
+    이 엔드포인트는 외부 AI 호출을 하지 않는 규칙 기반 구현입니다. 실제 AI 연동은
+    별도의 플래그 및 보안 검토 후 추가하세요.
     """
     try:
         response = generate_chat_response(request.message, db=db)

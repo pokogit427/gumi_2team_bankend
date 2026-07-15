@@ -25,6 +25,10 @@ def _data_error_response() -> JSONResponse:
     "",
     response_model=LocationListResponse,
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse}},
+    description=(
+        "지역정보 목록을 조회합니다. `query`로 텍스트 검색을 수행하고 `category`로 필터링할 수 있습니다."
+        " 결과는 페이지네이션되어 반환됩니다."
+    ),
 )
 def list_locations_endpoint(
     query: str | None = Query(default=None, max_length=200),
@@ -51,6 +55,10 @@ def list_locations_endpoint(
         status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
     },
+    description=(
+        "단일 지역정보 항목을 `content_id`로 조회합니다."
+        " 항목이 존재하지 않으면 `not_found` 오류를 반환합니다."
+    ),
 )
 def get_location_endpoint(content_id: str):
     try:

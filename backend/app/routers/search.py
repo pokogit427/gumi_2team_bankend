@@ -22,6 +22,10 @@ router = APIRouter(prefix="/api/search", tags=["search"])
         status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
     },
+    description=(
+        "키워드 기반 통합 검색을 수행합니다. `category`로 검색 대상을 제한할 수 있으며,"
+        " 게시글과 지역정보가 함께 반환됩니다. `page`/`size`로 페이징을 조절하세요."
+    ),
 )
 def search_endpoint(
     query: str = Query(min_length=1, max_length=200),
