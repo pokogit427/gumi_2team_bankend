@@ -76,22 +76,22 @@ def generate_chat_response(message: str, db=None, max_refs: int = 5) -> dict:
     category = _classify_message(message)
     try:
         if category == "tourist":
-            locations = location_service.filter_locations(query=message, category="관광지")
+            locations = filter_locations(query=message, category="관광지")
             refs = [_build_reference_from_location(loc) for loc in locations[:max_refs]]
             answer = f"추천 관광지를 찾았습니다: {', '.join([r['title'] for r in refs])}" if refs else "추천할 관광지를 찾지 못했습니다."
         elif category == "festival":
-            locations = location_service.filter_locations(query=message, category="축제공연행사")
+            locations = filter_locations(query=message, category="축제공연행사")
             refs = [_build_reference_from_location(loc) for loc in locations[:max_refs]]
             answer = f"관련 축제 정보를 찾았습니다: {', '.join([r['title'] for r in refs])}" if refs else "관련 축제 정보를 찾지 못했습니다."
         elif category == "restaurant":
-            locations = location_service.filter_locations(query=message, category="음식점")
+            locations = filter_locations(query=message, category="음식점")
             refs = [_build_reference_from_location(loc) for loc in locations[:max_refs]]
             answer = f"추천 음식점: {', '.join([r['title'] for r in refs])}" if refs else "추천 음식점을 찾지 못했습니다."
         elif category == "post":
             # 게시글은 DB 검색(ORM 객체 리스트)을 반환. 이 경우 DB 세션이 필요합니다.
             if db is None:
                 raise ChatServiceError("DB session required for post searches")
-            posts = post_service.search_posts(db, message)
+            posts = search_posts(db, message)
             refs = [_build_reference_from_post(p) for p in posts[:max_refs]]
             answer = f"관련 게시글을 찾았습니다: {', '.join([r['title'] for r in refs])}" if refs else "관련 게시글을 찾지 못했습니다."
         else:
