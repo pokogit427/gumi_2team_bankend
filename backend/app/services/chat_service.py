@@ -37,7 +37,8 @@ def _classify_message(message: str) -> str:
     이 방식은 규칙 기반으로 챗봇 동작을 빠르게 구현/테스트하기 위함입니다.
     """
     text = message.casefold()
-    if any(k in text for k in ("관광", "추천", "여행", "볼 만")):
+    # 관광 관련 키워드: 포함되는 다양한 표현을 포괄하도록 확장
+    if any(k in text for k in ("관광", "추천", "여행", "볼 만", "가볼", "가볼만")):
         return "tourist"
     if any(k in text for k in ("축제", "행사", "일정")):
         return "festival"
@@ -180,6 +181,25 @@ def generate_chat_response(message: str, db=None, max_refs: int = 5) -> dict:
         if category == "tourist":
             locations = filter_locations(query=message, category="관광지")
             refs = [_build_reference_from_location(loc) for loc in locations[:max_refs]]
+            # 전체 문장으로 매칭이 없으면 메시지에서 핵심 토큰을 추출해 부분 검색합니다.
+            if not refs:
+                import re
+
+                tokens = [t for t in re.findall(r"[\w가-힣]+", message) if len(t) >= 2]
+                seen_ids = set()
+                refs = []
+                for tok in tokens:
+                    locs = filter_locations(query=tok, category="관광지")
+                    for loc in locs:
+                        if loc.get("id") in seen_ids:
+                            continue
+                        refs.append(_build_reference_from_location(loc))
+                        seen_ids.add(loc.get("id"))
+                        if len(refs) >= max_refs:
+                            break
+                    if len(refs) >= max_refs:
+                        break
+
             answer = f"추천 관광지를 찾았습니다: {', '.join([r['title'] for r in refs])}" if refs else "추천할 관광지를 찾지 못했습니다."
         elif category == "festival":
             locations = filter_locations(query=message, category="축제공연행사")
