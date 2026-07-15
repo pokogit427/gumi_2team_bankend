@@ -47,7 +47,7 @@ def client(db_session_factory, monkeypatch: pytest.MonkeyPatch) -> Generator[Tes
 def test_chat_tourist_question_returns_locations(monkeypatch, client: TestClient):
     # 모킹된 위치 결과
     monkeypatch.setattr(
-        "app.services.location_service.filter_locations",
+        "app.services.chat_service.filter_locations",
         lambda query, category, locations=None: [
             {"id": "1", "title": "금오산"},
             {"id": "2", "title": "구미박물관"},
@@ -65,7 +65,7 @@ def test_chat_tourist_question_returns_locations(monkeypatch, client: TestClient
 
 def test_chat_restaurant_question_returns_restaurants(monkeypatch, client: TestClient):
     monkeypatch.setattr(
-        "app.services.location_service.filter_locations",
+        "app.services.chat_service.filter_locations",
         lambda query, category, locations=None: [{"id": "r1", "title": "맛집A"}],
     )
 
@@ -83,7 +83,7 @@ def test_chat_post_question_searches_posts(monkeypatch, client: TestClient):
             self.title = title
 
     monkeypatch.setattr(
-        "app.services.post_service.search_posts",
+        "app.services.chat_service.search_posts",
         lambda db, query: [FakePost(1, "게시글A"), FakePost(2, "게시글B")],
     )
 
