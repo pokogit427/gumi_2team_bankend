@@ -14,6 +14,11 @@ from typing import List
 import app.services.location_service as location_service
 import app.services.post_service as post_service
 
+# 테스트 편의성: 외부에서 `app.services.chat_service.filter_locations`처럼
+# 직접 패치할 수 있도록 모듈 수준 alias를 제공합니다.
+filter_locations = location_service.filter_locations
+search_posts = post_service.search_posts
+
 
 class ChatServiceError(RuntimeError):
     """챗봇 서비스 내부 오류를 나타내는 예외입니다.
