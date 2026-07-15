@@ -1,6 +1,6 @@
 """HTTP endpoints for community posts."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Path, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -47,8 +47,8 @@ def _server_error_response() -> JSONResponse:
     ),
 )
 def list_posts_endpoint(
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
+    page: int = Query(default=1, ge=1, description="페이지 번호 (1부터 시작)"),
+    size: int = Query(default=20, ge=1, le=100, description="페이지당 항목 수 (1-100)"),
     db: Session = Depends(get_db),
 ):
     try:
@@ -70,7 +70,7 @@ def list_posts_endpoint(
         " 존재하지 않는 게시글 id로 요청하면 `not_found` 오류를 반환합니다."
     ),
 )
-def get_post_endpoint(post_id: int, db: Session = Depends(get_db)):
+def get_post_endpoint(post_id: int = Path(..., description="조회할 게시글의 ID"), db: Session = Depends(get_db)):
     try:
         return get_post_and_increment_view_count(db, post_id)
     except PostNotFoundError:
@@ -97,7 +97,7 @@ def get_post_endpoint(post_id: int, db: Session = Depends(get_db)):
     ),
 )
 def update_post_endpoint(
-    post_id: int,
+    post_id: int = Path(..., description="수정할 게시글의 ID"),
     post_data: PostUpdate,
     db: Session = Depends(get_db),
 ):
@@ -132,7 +132,7 @@ def update_post_endpoint(
     ),
 )
 def delete_post_endpoint(
-    post_id: int,
+    post_id: int = Path(..., description="삭제할 게시글의 ID"),
     delete_data: PostDeleteRequest,
     db: Session = Depends(get_db),
 ):

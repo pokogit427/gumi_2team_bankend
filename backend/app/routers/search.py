@@ -28,10 +28,13 @@ router = APIRouter(prefix="/api/search", tags=["search"])
     ),
 )
 def search_endpoint(
-    query: str = Query(min_length=1, max_length=200),
-    category: Literal["all", "tourist", "restaurant", "festival", "community"] = "all",
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
+    query: str = Query(min_length=1, max_length=200, description="검색어 (최소 1자)"),
+    category: Literal["all", "tourist", "restaurant", "festival", "community"] = Query(
+        "all",
+        description="검색 대상: all(전체)/tourist/restaurant/festival/community",
+    ),
+    page: int = Query(default=1, ge=1, description="페이지 번호 (1부터 시작)"),
+    size: int = Query(default=20, ge=1, le=100, description="페이지당 항목 수 (1-100)"),
     db: Session = Depends(get_db),
 ):
     query_text = query.strip()

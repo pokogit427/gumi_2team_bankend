@@ -1,6 +1,6 @@
 """HTTP endpoints for normalized location data."""
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Path, status
 from fastapi.responses import JSONResponse
 
 from app.schemas import ErrorResponse, LocationListResponse, LocationResponse
@@ -31,10 +31,10 @@ def _data_error_response() -> JSONResponse:
     ),
 )
 def list_locations_endpoint(
-    query: str | None = Query(default=None, max_length=200),
-    category: str | None = Query(default=None, max_length=50),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
+    query: str | None = Query(default=None, max_length=200, description="검색어(이름/설명 등)"),
+    category: str | None = Query(default=None, max_length=50, description="카테고리 필터(예: 관광지, 음식점, 축제공연행사)"),
+    page: int = Query(default=1, ge=1, description="페이지 번호 (1부터 시작)"),
+    size: int = Query(default=20, ge=1, le=100, description="페이지당 항목 수 (1-100)"),
 ):
     try:
         items, total = get_location_page(
@@ -60,7 +60,7 @@ def list_locations_endpoint(
         " 항목이 존재하지 않으면 `not_found` 오류를 반환합니다."
     ),
 )
-def get_location_endpoint(content_id: str):
+def get_location_endpoint(content_id: str = Path(..., description="조회할 콘텐츠의 content_id")):
     try:
         location = get_location_by_content_id(content_id)
     except LocationDataError:
