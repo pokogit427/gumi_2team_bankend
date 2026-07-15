@@ -18,8 +18,41 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("localhub")
 
 
+# OpenAPI 태그 메타데이터: 각 태그별 설명을 추가하면 Swagger UI의 사이드바에 노출됩니다.
+tags_metadata = [
+    {
+        "name": "posts",
+        "description": "게시글 CRUD API: 작성, 조회, 수정, 삭제 기능을 제공합니다. 비밀번호로 수정/삭제 권한을 검증합니다.",
+    },
+    {
+        "name": "locations",
+        "description": "지역정보 API: 데이터셋으로부터 정규화된 관광지/음식점/축제 정보를 조회합니다. 카테고리·검색·페이징을 지원합니다.",
+    },
+    {
+        "name": "search",
+        "description": "통합 검색 API: 게시글과 지역정보를 통합하여 키워드 기반 검색 결과를 제공합니다. 카테고리 필터와 페이징을 지원합니다.",
+    },
+    {
+        "name": "chat",
+        "description": "규칙 기반 챗봇 API: 간단한 질문을 분류해 지역정보 또는 게시글을 참조해 응답을 생성합니다. 외부 AI 호출은 하지 않습니다.",
+    },
+    {
+        "name": "health",
+        "description": "서비스 헬스체크 엔드포인트입니다.",
+    },
+]
+
+
 # FastAPI 애플리케이션 인스턴스 생성
-app = FastAPI(title="LocalHub API")
+app = FastAPI(
+    title="LocalHub API",
+    description=(
+        "LocalHub는 지역 관광지, 음식점, 축제 정보와 커뮤니티 게시판을 제공하는 백엔드 API입니다."
+        " 이 문서에는 각 엔드포인트의 사용법, 요청/응답 스키마, 에러 포맷이 포함되어 있습니다."
+    ),
+    version="0.1.0",
+    openapi_tags=tags_metadata,
+)
 
 
 # CORS 설정
