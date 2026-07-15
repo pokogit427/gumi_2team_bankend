@@ -11,6 +11,7 @@ from app.models import Post  # noqa: F401
 from app.routers.locations import router as locations_router
 from app.routers.posts import router as posts_router
 from app.routers.search import router as search_router
+from app.routers.chat import router as chat_router
 from app.schemas import ErrorResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -63,6 +64,7 @@ app.add_middleware(
 app.include_router(locations_router)
 app.include_router(posts_router)
 app.include_router(search_router)
+app.include_router(chat_router)
 
 
 @app.on_event("startup")
