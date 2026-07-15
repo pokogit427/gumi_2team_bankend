@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class BaseTextModel(BaseModel):
-    @field_validator("title", "content", "password", mode="before", check_fields=False)
+    @field_validator("title", "content", "password", "message", mode="before", check_fields=False)
     @classmethod
     def strip_and_validate(cls, value: object) -> object:
         if isinstance(value, str):
