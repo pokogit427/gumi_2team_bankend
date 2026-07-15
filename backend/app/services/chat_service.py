@@ -38,11 +38,11 @@ def _classify_message(message: str) -> str:
     """
     text = message.casefold()
     # 관광 관련 키워드: 포함되는 다양한 표현을 포괄하도록 확장
-    if any(k in text for k in ("관광", "추천", "여행", "볼 만", "가볼", "가볼만")):
+    if any(k in text for k in ("관광", "추천", "여행", "볼 만", "가볼", "가볼만", "명소", "추천해줘", "추천해주세요")):
         return "tourist"
     if any(k in text for k in ("축제", "행사", "일정")):
         return "festival"
-    if any(k in text for k in ("맛집", "음식", "식당")):
+    if any(k in text for k in ("맛집", "음식", "식당", "경치", "뷰", "카페", "한식", "양식", "분위기")):
         return "restaurant"
     if any(k in text for k in ("글", "게시글", "후기", "포스트")):
         return "post"
@@ -68,8 +68,24 @@ def _format_references_for_prompt(references: list[dict]) -> str:
         return ""
     lines = ["참조 항목:"]
     for index, ref in enumerate(references, start=1):
-        lines.append(f"{index}. [{ref['result_type']}] {ref['title']}")
+        line = f"{index}. [{ref['result_type']}] {ref.get('title', '')}"
+        if ref.get("snippet"):
+            line += f" - {ref['snippet']}"
+        if ref.get("file"):
+            line += f" (file: {ref['file']})"
+        lines.append(line)
     return "\n".join(lines)
+
+
+def _build_reference_from_local_data(item: dict) -> dict:
+    """로컬 JSON 데이터 항목을 ChatReference 형태로 변환합니다."""
+    return {
+        "id": item.get("id"),
+        "title": item.get("title", item.get("file", "local_data")),
+        "snippet": item.get("snippet"),
+        "file": item.get("file"),
+        "result_type": "local_data",
+    }
 
 
 def _generate_openai_answer(message: str, references: list[dict]) -> str:
@@ -86,8 +102,10 @@ def _generate_openai_answer(message: str, references: list[dict]) -> str:
 
         client = OpenAI(api_key=settings.openai_api_key)
         prompt = (
-            "아래 질문에 답해주세요. 가능한 경우 참조 항목을 반영하여 한국어로 간결하게 설명하고, "
-            "질문에 직접 관련된 정보를 중심으로 답변하세요.\n\n"
+            "당신은 구미 지역 관광 및 맛집 정보를 잘 아는 한국어 안내자입니다."
+            "\n사용자의 질문에 대해 자연스럽고 친절하게 답변하세요."
+            "\n가능한 경우, 아래 참조 항목을 반영하되 과도하게 길지 않게 요약해 주세요."
+            "\n\n"
             f"질문: {message}\n\n"
             f"{_format_references_for_prompt(references)}\n\n"
             "답변:"
@@ -96,9 +114,67 @@ def _generate_openai_answer(message: str, references: list[dict]) -> str:
         response = client.responses.create(
             model="gpt-5-mini",
             input=prompt,
-            max_output_tokens=512,
+            max_output_tokens=2048,
+            text={"format": {"type": "text"}},
         )
-        return getattr(response, "output_text", str(response))
+        if hasattr(response, "output_text") and response.output_text:
+            return response.output_text
+
+        def extract_text(item):
+            if item is None:
+                return []
+            if isinstance(item, str):
+                return [item]
+            if isinstance(item, (list, tuple)):
+                results = []
+                for sub in item:
+                    results.extend(extract_text(sub))
+                return results
+            if hasattr(item, "to_dict") and not isinstance(item, dict):
+                try:
+                    return extract_text(item.to_dict())
+                except Exception:
+                    pass
+            if isinstance(item, dict):
+                results = []
+                if isinstance(item.get("text"), str):
+                    results.append(item["text"])
+                content = item.get("content")
+                if content is not None:
+                    results.extend(extract_text(content))
+                message = item.get("message")
+                if message is not None:
+                    results.extend(extract_text(message))
+                return results
+            results = []
+            text_value = getattr(item, "text", None)
+            if isinstance(text_value, str):
+                results.append(text_value)
+            content_value = getattr(item, "content", None)
+            if content_value is not None:
+                results.extend(extract_text(content_value))
+            message_value = getattr(item, "message", None)
+            if message_value is not None:
+                results.extend(extract_text(message_value))
+            return results
+
+        output = getattr(response, "output", None)
+        texts = extract_text(output)
+        if texts:
+            return "\n".join(texts).strip()
+
+        if hasattr(response, "text") and isinstance(response.text, str) and response.text:
+            return response.text
+
+        # `response.text` may be a ResponseTextConfig object in some SDK versions,
+        # so we fallback to a dictionary-based extraction if needed.
+        response_dict = response.to_dict()
+        output_items = response_dict.get("output")
+        texts = extract_text(output_items)
+        if texts:
+            return "\n".join(texts).strip()
+
+        return "죄송합니다. 응답을 생성하는 동안 오류를 발생했습니다. 다시 시도해 주세요."
     except Exception:
         # 재시도나 세부 에러 처리를 호출자에게 맡깁니다.
         raise
