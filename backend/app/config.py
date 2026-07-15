@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,6 +9,8 @@ class Settings(BaseSettings):
     debug: bool = False
     database_url: str = "sqlite:///./localhub.db"
     cors_origins: str = "http://localhost:5173"
+    # Optional OpenAI API key. If set, chat service will call OpenAI.
+    openai_api_key: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

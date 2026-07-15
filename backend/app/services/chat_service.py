@@ -11,6 +11,7 @@
 
 from typing import List
 
+from app.config import settings
 import app.services.location_service as location_service
 import app.services.post_service as post_service
 
@@ -60,6 +61,48 @@ def _build_reference_from_post(post) -> dict:
     return {"id": post.id, "title": post.title, "result_type": "post"}
 
 
+def _format_references_for_prompt(references: list[dict]) -> str:
+    """프롬프트에 넣을 참조 목록 텍스트로 변환합니다."""
+    if not references:
+        return ""
+    lines = ["참조 항목:"]
+    for index, ref in enumerate(references, start=1):
+        lines.append(f"{index}. [{ref['result_type']}] {ref['title']}")
+    return "\n".join(lines)
+
+
+def _generate_openai_answer(message: str, references: list[dict]) -> str:
+    """OpenAI 응답을 생성합니다. 설정에 `openai_api_key`가 있어야 합니다.
+
+    실패하면 예외를 던집니다 — 호출부에서 안전하게 처리하세요.
+    """
+    if not settings.openai_api_key:
+        raise ValueError("OpenAI API key is not configured")
+
+    try:
+        # import locally to avoid import error when dependency missing
+        from openai import OpenAI
+
+        client = OpenAI(api_key=settings.openai_api_key)
+        prompt = (
+            "아래 질문에 답해주세요. 가능한 경우 참조 항목을 반영하여 한국어로 간결하게 설명하고, "
+            "질문에 직접 관련된 정보를 중심으로 답변하세요.\n\n"
+            f"질문: {message}\n\n"
+            f"{_format_references_for_prompt(references)}\n\n"
+            "답변:"
+        )
+
+        response = client.responses.create(
+            model="gpt-5-mini",
+            input=prompt,
+            max_output_tokens=512,
+        )
+        return getattr(response, "output_text", str(response))
+    except Exception:
+        # 재시도나 세부 에러 처리를 호출자에게 맡깁니다.
+        raise
+
+
 def generate_chat_response(message: str, db=None, max_refs: int = 5) -> dict:
     """주어진 메시지에 대해 규칙 기반 응답을 생성합니다.
 
@@ -97,6 +140,17 @@ def generate_chat_response(message: str, db=None, max_refs: int = 5) -> dict:
         else:
             refs = []
             answer = "질문을 이해하지 못했습니다. 관광지, 축제, 음식점, 게시글 관련 질문을 해보세요."
+
+        # OpenAI 키가 설정되어 있으면 AI에게 더 자연스러운 응답을 요청합니다.
+        if settings.openai_api_key:
+            try:
+                ai_answer = _generate_openai_answer(message, refs)
+                # OpenAI 응답이 비어있으면 규칙 기반 답변 유지
+                if ai_answer:
+                    answer = ai_answer
+            except Exception:
+                # 외부 호출 실패 시 규칙 기반 답변을 사용합니다.
+                pass
 
         return {"answer": answer, "references": refs}
     except Exception as exc:

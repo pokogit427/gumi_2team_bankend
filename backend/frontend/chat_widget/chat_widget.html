@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="chat_widget.css">
+  <title>Chat Widget</title>
+</head>
+<body>
+<div id="chat-widget" class="chat-hidden">
+  <div id="chat-header">챗봇</div>
+  <div id="chat-body"></div>
+  <form id="chat-form">
+    <input id="chat-input" placeholder="질문을 입력하세요..." autocomplete="off" />
+    <button type="submit">전송</button>
+  </form>
+</div>
+<button id="chat-toggle" aria-label="열기">💬</button>
+<script src="chat_widget.js"></script>
+</body>
+</html>
