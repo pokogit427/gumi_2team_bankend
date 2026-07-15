@@ -97,8 +97,8 @@ def get_post_endpoint(post_id: int = Path(..., description="조회할 게시글�
     ),
 )
 def update_post_endpoint(
-    post_id: int = Path(..., description="수정할 게시글의 ID"),
     post_data: PostUpdate,
+    post_id: int = Path(..., description="수정할 게시글의 ID"),
     db: Session = Depends(get_db),
 ):
     try:
@@ -132,8 +132,8 @@ def update_post_endpoint(
     ),
 )
 def delete_post_endpoint(
-    post_id: int = Path(..., description="삭제할 게시글의 ID"),
     delete_data: PostDeleteRequest,
+    post_id: int = Path(..., description="삭제할 게시글의 ID"),
     db: Session = Depends(get_db),
 ):
     try:
