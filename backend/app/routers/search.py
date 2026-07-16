@@ -39,7 +39,7 @@ def search_endpoint(
 ):
     query_text = query.strip()
     if not query_text:
-        error = ErrorResponse(error="invalid_request", message="query is required")
+        error = ErrorResponse(code="invalid_request", message="query is required")
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content=error.model_dump(),
@@ -55,7 +55,7 @@ def search_endpoint(
         )
         return SearchResponse(items=items, total=total, page=page, size=size)
     except (LocationDataError, PostReadError):
-        error = ErrorResponse(error="server_error", message="Internal server error")
+        error = ErrorResponse(code="server_error", message="Internal server error")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=error.model_dump(),

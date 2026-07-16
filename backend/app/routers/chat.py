@@ -33,5 +33,5 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         response = generate_chat_response(request.message, db=db)
         return response
     except ChatServiceError:
-        error = ErrorResponse(error="server_error", message="Internal server error")
+        error = ErrorResponse(code="server_error", message="Internal server error")
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=error.model_dump())

@@ -3,14 +3,24 @@
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models import Post
+from app.models import Comment, Post, PostLike
 from app.schemas import PostCreate, PostDeleteRequest, PostUpdate
 
 logger = logging.getLogger("localhub.post_service")
+
+
+def _set_engagement_counts(db: Session, post: Post) -> Post:
+    post.comment_count = db.scalar(
+        select(func.count()).select_from(Comment).where(Comment.post_id == post.id)
+    ) or 0
+    post.like_count = db.scalar(
+        select(func.count()).select_from(PostLike).where(PostLike.post_id == post.id)
+    ) or 0
+    return post
 
 
 class PostCreationError(RuntimeError):
@@ -46,7 +56,7 @@ def create_post(db: Session, post_data: PostCreate) -> Post:
         logger.error("Failed to create post due to a database error")
         raise PostCreationError("Post could not be created") from exc
 
-    return post
+    return _set_engagement_counts(db, post)
 
 
 def get_posts(db: Session, *, page: int, size: int) -> tuple[list[Post], int]:
@@ -66,6 +76,8 @@ def get_posts(db: Session, *, page: int, size: int) -> tuple[list[Post], int]:
         logger.error("Failed to read posts due to a database error")
         raise PostReadError("Posts could not be read") from exc
 
+    for post in posts:
+        _set_engagement_counts(db, post)
     return posts, total
 
 
@@ -89,14 +101,17 @@ def search_posts(db: Session, query: str) -> list[Post]:
 def get_post_and_increment_view_count(db: Session, post_id: int) -> Post:
     """Return a post after atomically incrementing its view count."""
     try:
-        post = db.get(Post, post_id)
-        if post is None:
+        result = db.execute(
+            update(Post)
+            .where(Post.id == post_id)
+            .values(view_count=Post.view_count + 1)
+        )
+        if result.rowcount == 0:
+            db.rollback()
             raise PostNotFoundError("Post not found")
-
-        post.view_count += 1
         db.commit()
-        db.refresh(post)
-        return post
+        post = db.get(Post, post_id)
+        return _set_engagement_counts(db, post)
     except PostNotFoundError:
         raise
     except SQLAlchemyError as exc:
@@ -121,7 +136,7 @@ def update_post(db: Session, post_id: int, post_data: PostUpdate) -> Post:
         post.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         db.commit()
         db.refresh(post)
-        return post
+        return _set_engagement_counts(db, post)
     except (PostNotFoundError, IncorrectPostPasswordError):
         raise
     except SQLAlchemyError as exc:

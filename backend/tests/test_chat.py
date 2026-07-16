@@ -107,4 +107,4 @@ def test_chat_service_internal_error(monkeypatch, client: TestClient):
 
     response = client.post("/api/chat", json={"message": "구미 관광"})
     assert response.status_code == 500
-    assert response.json() == {"error": "server_error", "message": "Internal server error"}
+    assert response.json() == {"code": "server_error", "message": "Internal server error"}

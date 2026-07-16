@@ -93,7 +93,7 @@ def test_create_post_hides_database_error_details(
 
     assert response.status_code == 500
     assert response.json() == {
-        "error": "server_error",
+        "code": "server_error",
         "message": "Internal server error",
     }
     assert "sensitive" not in response.text
@@ -169,7 +169,7 @@ def test_get_missing_post_returns_404(client: TestClient) -> None:
     response = client.get("/api/posts/999999")
 
     assert response.status_code == 404
-    assert response.json() == {"error": "not_found", "message": "Post not found"}
+    assert response.json() == {"code": "not_found", "message": "Post not found"}
 
 
 def test_update_post_changes_content_and_updated_at_without_exposing_password(
@@ -207,7 +207,7 @@ def test_update_post_rejects_incorrect_password(client: TestClient) -> None:
     )
 
     assert response.status_code == 403
-    assert response.json() == {"error": "forbidden", "message": "Incorrect password"}
+    assert response.json() == {"code": "forbidden", "message": "Incorrect password"}
 
 
 def test_update_missing_post_returns_404(client: TestClient) -> None:
@@ -217,7 +217,7 @@ def test_update_missing_post_returns_404(client: TestClient) -> None:
     )
 
     assert response.status_code == 404
-    assert response.json() == {"error": "not_found", "message": "Post not found"}
+    assert response.json() == {"code": "not_found", "message": "Post not found"}
 
 
 @pytest.mark.parametrize("field", ["title", "content"])
@@ -256,7 +256,7 @@ def test_delete_post_rejects_incorrect_password(client: TestClient) -> None:
     )
 
     assert response.status_code == 403
-    assert response.json() == {"error": "forbidden", "message": "Incorrect password"}
+    assert response.json() == {"code": "forbidden", "message": "Incorrect password"}
     assert client.get(f"/api/posts/{created['id']}").status_code == 200
 
 
@@ -268,7 +268,7 @@ def test_delete_missing_post_returns_404(client: TestClient) -> None:
     )
 
     assert response.status_code == 404
-    assert response.json() == {"error": "not_found", "message": "Post not found"}
+    assert response.json() == {"code": "not_found", "message": "Post not found"}
 
 
 @pytest.mark.parametrize("password", ["", "   "])
