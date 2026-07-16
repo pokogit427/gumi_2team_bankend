@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/locations", tags=["locations"])
 
 
 def _data_error_response() -> JSONResponse:
-    error = ErrorResponse(error="server_error", message="Internal server error")
+    error = ErrorResponse(code="server_error", message="Internal server error")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error.model_dump(),
@@ -67,7 +67,7 @@ def get_location_endpoint(content_id: str = Path(..., description="조회할 콘
         return _data_error_response()
 
     if location is None:
-        error = ErrorResponse(error="not_found", message="Location not found")
+        error = ErrorResponse(code="not_found", message="Location not found")
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=error.model_dump(),

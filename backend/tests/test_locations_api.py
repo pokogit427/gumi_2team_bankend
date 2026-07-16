@@ -140,7 +140,7 @@ def test_get_missing_location_returns_404(client: TestClient) -> None:
     response = client.get("/api/locations/missing")
 
     assert response.status_code == 404
-    assert response.json() == {"error": "not_found", "message": "Location not found"}
+    assert response.json() == {"code": "not_found", "message": "Location not found"}
 
 
 def test_location_with_missing_optional_values_is_valid(client: TestClient) -> None:

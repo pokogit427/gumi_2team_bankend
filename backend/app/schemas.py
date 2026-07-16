@@ -1,11 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+
+
+def _utc_iso(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class BaseTextModel(BaseModel):
-    @field_validator("title", "content", "password", "message", mode="before", check_fields=False)
+    @field_validator("title", "content", "password", "message", "nickname", mode="before", check_fields=False)
     @classmethod
     def strip_and_validate(cls, value: object) -> object:
         if isinstance(value, str):
@@ -44,6 +50,16 @@ class PostResponse(BaseModel):
     content: str = Field(..., description="게시글 본문")
     created_at: datetime = Field(..., description="생성일시 (UTC)")
     updated_at: datetime = Field(..., description="수정일시 (UTC)")
+    views: int = Field(default=0, ge=0, validation_alias="view_count")
+    likes: int = Field(default=0, ge=0, validation_alias="like_count")
+    # Deprecated compatibility fields. New clients should use views and likes.
+    view_count: int = Field(default=0, ge=0)
+    comment_count: int = Field(default=0, ge=0)
+    like_count: int = Field(default=0, ge=0)
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, value: datetime) -> str:
+        return _utc_iso(value)
 
 
 class PostListResponse(BaseModel):
@@ -53,6 +69,44 @@ class PostListResponse(BaseModel):
     total: int = Field(default=0, ge=0)
     page: int = Field(default=1, ge=1)
     size: int = Field(default=10, ge=1, le=100)
+
+
+class CommentCreate(BaseTextModel):
+    nickname: str = Field(default="익명", min_length=1, max_length=30)
+    content: str = Field(..., min_length=1, max_length=1000)
+    password: str = Field(..., pattern=r"^[0-9]{4}$")
+
+
+class CommentDeleteRequest(BaseTextModel):
+    password: str = Field(..., pattern=r"^[0-9]{4}$")
+
+
+class CommentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    post_id: int
+    nickname: str
+    content: str
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, value: datetime) -> str:
+        return _utc_iso(value)
+
+
+class CommentListResponse(BaseModel):
+    items: list[CommentResponse]
+    total: int = Field(default=0, ge=0)
+    page: int = Field(default=1, ge=1)
+    size: int = Field(default=50, ge=1, le=100)
+
+
+class LikeResponse(BaseModel):
+    post_id: int
+    likes: int = Field(ge=0)
+    like_count: int = Field(ge=0, description="Deprecated alias for likes")
 
 
 class LocationResponse(BaseModel):
@@ -132,9 +186,9 @@ class ErrorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     """표준 에러 응답 형식.
 
-    - `error`: 간단한 에러 코드
+    - `code`: 간단한 에러 코드
     - `message`: 사람에게 읽기 쉬운 설명
     """
 
-    error: str = Field(..., description="에러 코드")
+    code: str = Field(..., description="에러 코드")
     message: str = Field(..., description="에러 메시지")

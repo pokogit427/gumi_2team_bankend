@@ -2,16 +2,20 @@ import logging
 import os
 from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, engine, ensure_schema_compatibility
 from app.models import Post  # noqa: F401
 from app.routers.locations import router as locations_router
 from app.routers.posts import router as posts_router
 from app.routers.search import router as search_router
 from app.routers.chat import router as chat_router
+from app.routers.comments import router as comments_router
 from app.schemas import ErrorResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +57,23 @@ app = FastAPI(
     version="0.1.0",
     openapi_tags=tags_metadata,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"code": "validation_error", "message": "Invalid request"},
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    code = "not_found" if exc.status_code == status.HTTP_404_NOT_FOUND else "http_error"
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"code": code, "message": str(exc.detail)},
+    )
 
 
 # CORS 설정
@@ -98,6 +119,7 @@ app.include_router(locations_router)
 app.include_router(posts_router)
 app.include_router(search_router)
 app.include_router(chat_router)
+app.include_router(comments_router)
 
 
 @app.on_event("startup")
@@ -108,6 +130,7 @@ def create_tables() -> None:
     이 작업은 idempotent 하며 이미 테이블이 존재하면 아무 동작도 수행하지 않습니다.
     """
     Base.metadata.create_all(bind=engine)
+    ensure_schema_compatibility()
     logger.info("Database initialization completed")
 
 

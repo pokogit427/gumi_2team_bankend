@@ -29,7 +29,7 @@ router = APIRouter(prefix="/api/posts", tags=["posts"])
 
 
 def _server_error_response() -> JSONResponse:
-    error = ErrorResponse(error="server_error", message="Internal server error")
+    error = ErrorResponse(code="server_error", message="Internal server error")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=error.model_dump(),
@@ -74,7 +74,7 @@ def get_post_endpoint(post_id: int = Path(..., description="조회할 게시글�
     try:
         return get_post_and_increment_view_count(db, post_id)
     except PostNotFoundError:
-        error = ErrorResponse(error="not_found", message="Post not found")
+        error = ErrorResponse(code="not_found", message="Post not found")
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=error.model_dump(),
@@ -104,13 +104,13 @@ def update_post_endpoint(
     try:
         return update_post(db, post_id, post_data)
     except PostNotFoundError:
-        error = ErrorResponse(error="not_found", message="Post not found")
+        error = ErrorResponse(code="not_found", message="Post not found")
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=error.model_dump(),
         )
     except IncorrectPostPasswordError:
-        error = ErrorResponse(error="forbidden", message="Incorrect password")
+        error = ErrorResponse(code="forbidden", message="Incorrect password")
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=error.model_dump(),
@@ -140,13 +140,13 @@ def delete_post_endpoint(
         delete_post(db, post_id, delete_data)
         return {"message": "Post deleted"}
     except PostNotFoundError:
-        error = ErrorResponse(error="not_found", message="Post not found")
+        error = ErrorResponse(code="not_found", message="Post not found")
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=error.model_dump(),
         )
     except IncorrectPostPasswordError:
-        error = ErrorResponse(error="forbidden", message="Incorrect password")
+        error = ErrorResponse(code="forbidden", message="Incorrect password")
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=error.model_dump(),
